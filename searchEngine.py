@@ -6,9 +6,10 @@
 # TIME SPENT: 45 mins 
 #-------------------------------------------------------------------------
 
-# To Run:
-#   make sure mongoDB is running first, then run this in terminal:
+# Make sure mongoDB is running first, then run this to create the database:
 #       python searchEngine.py crawl --all
+
+# Then, you can run search queries, example:
 #       python searchEngine.py search "traffic safety" --page 1
 
 import argparse
