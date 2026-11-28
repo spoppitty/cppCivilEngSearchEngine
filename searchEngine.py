@@ -6,9 +6,6 @@
 # TIME SPENT: 45 mins 
 #-------------------------------------------------------------------------
 
-# Download Libraries:
-#   pip install -r requirements.txt
-
 # To Run:
 #   make sure mongoDB is running first, then run this in terminal:
 #       python searchEngine.py crawl --all
@@ -26,7 +23,7 @@ from urllib.parse import urldefrag, urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
-from pymongo import MongoClient, UpdateOne
+from pymongo import MongoClient
 
 
 SEED_URL = "https://www.cpp.edu/engineering/ce/index.shtml"
@@ -48,12 +45,31 @@ def normalize_url(base_url: str, href: str) -> str | None:
     parsed = urlparse(absolute)
     if parsed.scheme not in {"http", "https"} or parsed.netloc.lower() != CPP_HOST:
         return None
+
+    # Treat the different versions of a faculty home page as one URL.
+    faculty_match = re.fullmatch(
+        r"/faculty/([^/]+)(?:/index\.shtml)?/?",
+        parsed.path,
+        flags=re.IGNORECASE,
+    )
+    if faculty_match:
+        absolute = f"{parsed.scheme}://{parsed.netloc}/faculty/{faculty_match.group(1)}/"
+
     return absolute
+
+# Return True only for a faculty profile's main page.
+def is_faculty_profile_url(url: str) -> bool:
+    path = urlparse(url).path
+    return re.fullmatch(
+        r"/faculty/[^/]+(?:/index\.shtml)?/?",
+        path,
+        flags=re.IGNORECASE,
+    ) is not None
 
 # Allow the department site and linked CPP faculty profiles only.
 def allowed_url(url: str) -> bool:
     path = urlparse(url).path.lower()
-    return path.startswith(DEPARTMENT_PREFIX) or path.startswith(FACULTY_PREFIX)
+    return path.startswith(DEPARTMENT_PREFIX) or is_faculty_profile_url(url)
 
 def clean_text(node) -> str:
     return re.sub(r"\s+", " ", node.get_text(" ", strip=True)).strip()
@@ -70,7 +86,7 @@ def extract_faculty_name(soup: BeautifulSoup) -> str | None:
 
 # Identify a target page using the faculty URL and department header text.
 def is_civil_faculty_page(url: str, soup: BeautifulSoup) -> bool:
-    if not urlparse(url).path.lower().startswith(FACULTY_PREFIX):
+    if not is_faculty_profile_url(url):
         return False
     text = clean_text(soup)
     civil_markers = ("civil engineering", "civil & environmental engineering")
@@ -141,7 +157,8 @@ class CivilCrawler:
                     upsert=True,
                 )
                 targets_found += 1
-                print(f"[{targets_found}/{target_count}] found: {faculty_name} -> {url}")
+                target_label = "all" if target_count is None else str(target_count)
+                print(f"[{targets_found}/{target_label}] found: {faculty_name} -> {url}")
 
             self.db.crawled_pages.update_one(
                 {"url": url},
