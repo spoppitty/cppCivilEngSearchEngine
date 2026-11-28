@@ -3,14 +3,18 @@
 # FILENAME: searchEngine.py
 # SPECIFICATION: Vertical search engine for CPP Civil Engineering faculty pages
 # FOR: CS 4250 - Project
-# TIME SPENT: 45 mins 
 #-------------------------------------------------------------------------
 
+# Download Libraries, run: 
+#   pip install -r requirements.txt
+
 # Make sure mongoDB is running first, then run this to create the database:
-#       python searchEngine.py crawl --all
+#   python searchEngine.py crawl --all
 
 # Then, you can run search queries, example:
-#       python searchEngine.py search "traffic safety" --page 1
+#   python searchEngine.py search "traffic safety"
+# Search multiple pages of search results
+#   python searchEngine.py search "traffic safety" --page 1
 
 import argparse
 import math
